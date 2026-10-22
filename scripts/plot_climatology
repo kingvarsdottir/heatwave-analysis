@@ -1,0 +1,57 @@
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import xarray as xr
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import numpy as np
+
+HWF_fpath = '/home/users/kaitlyni/HW index analysis/Met Office HW index data/HadEX3_81-10_TX90_HWF_ANN.nc.gz'
+start_year_int = 1970
+end_year_int = 2018
+lat_max, lat_min = 75, 20
+lon_max, lon_min = 150, 345
+
+HWF_file = open_file(HWF_fpath)
+HWF = process_data(HWF_file, 'TX90_HWF',
+                   start_year_int, end_year_int,
+                   lon_min, lon_max, lat_min, lat_max)
+climatology = climatology(HWF, start_year_int, end_year_int)
+
+vmin, vmax = -0.5, 14.51
+bound_step = 0.5
+tick_step = 2
+
+fig = plt.figure(figsize = (10, 5))
+proj = ccrs.PlateCarree(central_longitude=0)
+ax = fig.add_subplot(1, 1, 1, projection = proj)
+
+cmap = cm.jet.copy()
+cmap.set_bad(color='none')
+pcm = climatology.plot(
+    ax=ax,
+    transform=ccrs.PlateCarree(),
+    add_colorbar=False,  # don't let xarray make a color bar automatically
+    cmap = cmap,
+    vmin = vmin,
+    vmax = vmax
+)
+
+ax.coastlines(resolution='110m', linewidth=1)
+ax.add_feature(cfeature.BORDERS, linewidth=0.5, edgecolor='gray')
+if lon_min > lon_max:
+    ax.set_extent([lon_min - 360, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+else:
+    ax.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+gl = ax.gridlines(draw_labels = True, dms = True, x_inline = False, y_inline = False)
+gl.top_labels = False
+gl.right_labels = False
+
+fig.subplots_adjust(right=1) # adjust subplot layout parameters
+
+cbar = fig.colorbar(pcm, ax=ax, orientation='horizontal', boundaries = np.arange(vmin, vmax, bound_step), 
+                    fraction=0.05, aspect = 20, ticks = np.arange(0, vmax, tick_step))
+cbar.set_label(cbar_label) # create a colorbar manually
+
+fig.suptitle(f'TX90 {variable_name} Climatology for {start_year_int}-{end_year_int}')
+
+plt.show()
